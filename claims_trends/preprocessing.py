@@ -268,4 +268,26 @@ df_docterm = pd.DataFrame(X.toarray(),
                           columns=vectorizer.get_feature_names())
 
 
+# %% Data manipulation to get to the CountVectorizer result plus additional fields
+
+def document_term_matrix(data:pd.DataFrame, vectorizer:CountVectorizer):
+    """[summary]
+
+    Args:
+        data (pd.DataFrame): [description]
+        vectorizer (CountVectorizer): [description]
+
+    Returns:
+        pd.DataFrame: [description]
+    """
+
+    X = vectorizer.fit_transform(data['documents'])
+
+    df_docterm = pd.DataFrame(X.toarray(), index=data['claim_id'], columns=vectorizer.get_feature_names())
+
+    data = data.merge(df_docterm, how="inner", left_on='claim_id', right_index=True)
+
+    return data
+
+
 # %%
