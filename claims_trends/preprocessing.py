@@ -46,7 +46,14 @@ def sql_connection(ServerName, DBName):
 # %% Pull in the SCM data
 
 def get_scm_data(sql_con, table_name='T_LMM_SCM'):
-    """
+    """[summary]
+
+    Args:
+        sql_con ([type]): [description]
+        table_name (str, optional): [description]. Defaults to 'T_LMM_SCM'.
+
+    Returns:
+        [type]: [description]
     """
 
     df = pd.read_sql_table(sql_con, table_name)
@@ -59,7 +66,14 @@ def get_scm_data(sql_con, table_name='T_LMM_SCM'):
 
 
 def get_usm_data(sql_con, table_name = 'T_LMM_SCM'):
-    """
+    """[summary]
+
+    Args:
+        sql_con ([type]): [description]
+        table_name (str, optional): [description]. Defaults to 'T_LMM_SCM'.
+
+    Returns:
+        [type]: [description]
     """
 
     df = pd.read_sql_table(sql_con, table_name)
@@ -77,7 +91,7 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 
 # Download stopwords list
-nltk.download('punkt')
+# //// nltk.download('punkt')
 stop_words_en = set(stopwords.words('english'))
 
 def remove_stopwords(text:str, stop_words):
@@ -110,6 +124,8 @@ def preprocessing(text:str):
 # %% Could also use the sklearn tfidf vectoriser
 
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import CountVectorizer
+from nltk.stem import PorterStemmer
 
 # Interface lemma tokenizer from nltk with sklearn
 class LemmaTokenizer:
@@ -118,6 +134,14 @@ class LemmaTokenizer:
         self.wnl = WordNetLemmatizer()
     def __call__(self, doc):
         return [self.wnl.lemmatize(t) for t in word_tokenize(doc) if t not in self.ignore_tokens]
+
+class PorterTokenizer:
+    ignore_tokens = [',', '.', ';', ':', '"', '``', "''", '`']
+    def __init__(self):
+        self.prt = PorterStemmer()
+    def __call__(self, doc):
+        return [self.prt.stem(t) for t in word_tokenize(doc) if t not in self.ignore_tokens]
+
 
 
 def scikit_vectorizer(stop_words, LemmaTokenizer):
@@ -131,10 +155,10 @@ def scikit_vectorizer(stop_words, LemmaTokenizer):
         [type]: [description]
     """
 
-    tokenizer = LemmaTokenizer()
+    tokenizer = PorterTokenizer()
     token_stop = tokenizer(' '.join(stop_words))
 
-    vectorizer = TfidfVectorizer(stop_words=token_stop,
+    vectorizer = CountVectorizer(stop_words=token_stop,
                                  tokenizer=tokenizer)
 
     return vectorizer
@@ -142,9 +166,9 @@ def scikit_vectorizer(stop_words, LemmaTokenizer):
 
 vectorizer = scikit_vectorizer(stop_words_en, LemmaTokenizer)
 
-corpus = ['first doc', 'the second text']
+# //// corpus = ['first doc', 'the second text']
 # Corpus here is the entire set of documents in a list, on string per doc
-vectorizer.fit_transform(corpus)
+# //// vectorizer.fit_transform(corpus)
 
 
 # %% How do we account for multiple docs per record? We could just join all these together?
@@ -217,11 +241,31 @@ def get_vocabulary(data:pd.DataFrame):
     return vocab
 
 
-# %% Take that vocab and make it into cols
+# %% Test data to check if the CountVectorizer will work for ordered data separated from its key
+
+docs = ['fires destroyed house',
+        'flooding in block of flats',
+        'flood damage',
+        'theft of sum £300']
+
+dates = ['1/1/2021','2/1/2021','3/1/2021','4/1/2021']
+
+claim_ids = [101,102,103,104]
+
+data = {'claim_id':claim_ids,
+        'date':dates,
+        'documents':docs}
+
+df = pd.DataFrame(data)
 
 
+# %% Transposing and returning results, again testing works here
+
+X = vectorizer.fit_transform(data['documents'])
+
+df_docterm = pd.DataFrame(X.toarray(),
+                          index=data['claim_id'],
+                          columns=vectorizer.get_feature_names())
 
 
-
-
-
+# %%
