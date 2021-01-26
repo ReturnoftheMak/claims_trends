@@ -9,15 +9,15 @@ from nltk.corpus import stopwords
 
 def sql_connection(ServerName, DBName):
     """Returns a SQLAlchemy engine, given the server and database name.
-    
+
     Params:
         ServerName (str): - Server name
         DBName (str): - Database name
-    
+
     Returns:
         Object of type (sqlalchemy.engine.base.Engine) for use in pandas pd.to_sql functions
     """
-    
+
     from sqlalchemy import create_engine
 
     sqlcon = create_engine('mssql+pyodbc://@' +
@@ -26,7 +26,7 @@ def sql_connection(ServerName, DBName):
                            DBName +
                            '?driver=ODBC+Driver+13+for+SQL+Server',
                            fast_executemany=True)
-    
+
     return sqlcon
 
 
@@ -36,7 +36,7 @@ def sql_connection(ServerName, DBName):
 # although we could just use the time of the message.
 # Use the ClaimReference for claim level info, and ClaimDetailID for lowest level
 
-# We'll need to collect a non-repeating set of texts for each claim, then apply some nlp 
+# We'll need to collect a non-repeating set of texts for each claim, then apply some nlp
 # and return key terms
 
 # Essentially we want to end up with a sparse matrix with every word and how often it appears per day?
@@ -78,7 +78,7 @@ from nltk.stem import WordNetLemmatizer
 
 # Download stopwords list
 nltk.download('punkt')
-stop_words_en = set(stopwords.words('english')) 
+stop_words_en = set(stopwords.words('english'))
 
 def remove_stopwords(text:str, stop_words):
     """
@@ -121,13 +121,20 @@ class LemmaTokenizer:
 
 
 def scikit_vectorizer(stop_words, LemmaTokenizer):
-    """
+    """[summary]
+
+    Args:
+        stop_words ([type]): [description]
+        LemmaTokenizer ([type]): [description]
+
+    Returns:
+        [type]: [description]
     """
 
     tokenizer = LemmaTokenizer()
     token_stop = tokenizer(' '.join(stop_words))
 
-    vectorizer = TfidfVectorizer(stop_words=token_stop, 
+    vectorizer = TfidfVectorizer(stop_words=token_stop,
                                  tokenizer=tokenizer)
 
     return vectorizer
@@ -153,7 +160,10 @@ vectorizer.fit_transform(corpus)
 # %% Clean the document // unused
 
 def clean_document_field(data:pd.DataFrame):
-    """
+    """[summary]
+
+    Args:
+        data (pd.DataFrame): [description]
     """
 
     data['tokens'] = data['document'].apply(preprocessing)
@@ -164,7 +174,15 @@ def clean_document_field(data:pd.DataFrame):
 # %% Return a single document from many provided a list of col headers
 
 def get_document_list(data:pd.DataFrame, document_list:list, key_fields:list):
-    """Key fields here are a list of things like date and claims ID
+    """[summary]
+
+    Args:
+        data (pd.DataFrame): [description]
+        document_list (list): [description]
+        key_fields (list): Key fields here are a list of things like date and claims ID
+
+    Returns:
+        [type]: [description]
     """
 
     data['document'] = data[document_list].apply(lambda x: ' '.join(x.dropna().astype(str)).lower(), axis=1)
@@ -173,12 +191,18 @@ def get_document_list(data:pd.DataFrame, document_list:list, key_fields:list):
 
 
 # If we now create a sparse matrix using the document array, we should be able to keep the documents
-# matched up to the other fields. 
+# matched up to the other fields.
 
 # %% Get a set of cleaned tokens from the document field for a vocabulary
 
 def get_vocabulary(data:pd.DataFrame):
-    """
+    """[summary]
+
+    Args:
+        data (pd.DataFrame): [description]
+
+    Returns:
+        [type]: [description]
     """
 
     documents = data['document']
