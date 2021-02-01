@@ -290,4 +290,5 @@ def document_term_matrix(data:pd.DataFrame, vectorizer:CountVectorizer):
     return data
 
 
-# %%
+# %% Check what dates are in the data, format if needed
+
