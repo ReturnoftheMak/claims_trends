@@ -4,6 +4,7 @@
 # %% Package Imports
 
 import pandas as pd
+import numpy as np
 
 
 # %% Pick out the top N columns for overall frequency
@@ -12,7 +13,7 @@ def get_top_mentions_all_time(document_term_matrix:pd.DataFrame, N:int, date_col
     """[summary]
 
     Args:
-        document_term_matrix (pd.DataFrame): dataframe with vocab frequency as cols
+        document_term_matrix (pd.DataFrame): [description]
         N (int): [description]
         date_col_name (str): [description]
 
@@ -20,19 +21,28 @@ def get_top_mentions_all_time(document_term_matrix:pd.DataFrame, N:int, date_col
         [type]: [description]
     """
 
-    document_term_matrix.set_index(date_col_name, inplace=True)
-    vocab_cols = document_term_matrix.iloc[:,document_term_matrix.columns.get_loc('documents')+1:]
+    document_term_matrix_top_mentions = document_term_matrix
+    vocab_cols = document_term_matrix_top_mentions.iloc[:,document_term_matrix_top_mentions.columns.get_loc('documents')+1:]
 
     # Get a sum for each col and sort for top N
-    top_mentions = vocab_cols.sum(axis=0).sort_values(ascending=False)[:N]
+    top_mentions = pd.to_numeric(vocab_cols.sum(axis=0), errors='coerce').fillna(0).sort_values(ascending=False)[:N]
 
     top_mention_cols = list(top_mentions.index)
 
-    info_cols = list(document_term_matrix.iloc[:,:document_term_matrix.columns.get_loc('documents')+1].columns)
+    info_cols = list(document_term_matrix_top_mentions.iloc[:,:document_term_matrix_top_mentions.columns.get_loc('documents')+1].columns)
 
-    document_term_matrix_top_mentions = document_term_matrix[info_cols+top_mention_cols]
+    reduced = document_term_matrix_top_mentions[info_cols+top_mention_cols]
 
-    return document_term_matrix_top_mentions
+    flattened = pd.melt(reduced, id_vars=info_cols, var_name='term', value_name='mentions')
+
+    flattened['month'] = flattened['date'].dt.to_period('M')
+
+    grouped = flattened.groupby(['month', 'term'], as_index=False).sum()
+
+    # turn the period back to date format
+    grouped['date'] = grouped.month.dt.to_timestamp('d')
+
+    return grouped
 
 
 # %% Pick out the top N columns for highest frequency over last 30 days

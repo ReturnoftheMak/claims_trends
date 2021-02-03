@@ -1,3 +1,5 @@
+# %% Package Imports
+
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -5,14 +7,28 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 from dash.dependencies import Output, Input
+from sklearn.feature_extraction.text import CountVectorizer
+from nltk.corpus import stopwords
+from preprocessing import scikit_vectorizer, LemmaTokenizer, document_term_matrix, get_stopwords
+from term_frequency import get_top_mentions_all_time
 
-data = pd.read_csv('country_vaccinations.csv')
-# //// data = data.query("iso_code == 'GBR'")
-data["date"] = pd.to_datetime(data["date"], format="%Y-%m-%d")
-# //// data.sort_values("date", inplace=True)
+
+# %% Data Loads
+
+df = pd.read_csv(r'C:\Users\makhan.gill\Documents\GitHub\claims_trends\claims_trends\claim_ids.csv')
+df.columns = ['claim_id', 'date', 'documents']
+df["date"] = pd.to_datetime(df["date"], infer_datetime_format=True)
+
+stop_words_combined = get_stopwords()
+vectorizer = scikit_vectorizer(stop_words_combined, LemmaTokenizer, CountVectorizer)
+
+doc_tm = document_term_matrix(df.head(5000), vectorizer)
+
+data = get_top_mentions_all_time(doc_tm, 20, 'date')
 
 # Need to standardise the input here to make this code a bit more extensible
-color_var = data.country
+# In this case the columns from the get_mentions should be used as color/filter
+color_var = data.term
 
 external_stylesheets = [
     {
@@ -21,6 +37,7 @@ external_stylesheets = [
         "rel": "stylesheet",
     },
 ]
+
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 app.title = "Covid Vaccinations"
 
@@ -29,10 +46,10 @@ app.layout = html.Div(
         html.Div(
             children=[
                 html.H1(
-                    children="Covid Vaccinations", className="header-title"
+                    children="Claims Keywords", className="header-title"
                 ),
                 html.P(
-                    children="Data from the Our World in Data GitHub",
+                    children="SCM Data",
                     className="header-description",
                 ),
             ],
@@ -42,11 +59,11 @@ app.layout = html.Div(
             children=[
                 html.Div(
                     children=[
-                        html.Div(children="Country", className="menu-title"),
+                        html.Div(children="Terms", className="menu-title"),
                         dcc.Dropdown(
-                            id="country-filter",
+                            id="term-filter",
                             options=[{"label": country, "value": country} for country in np.sort(color_var.unique())],
-                            value=['United Kingdom', 'United States'],
+                            value=['fire', 'water'],
                             multi=True,
                             className="dropdown",
                             persistence_type="local",
@@ -79,24 +96,25 @@ app.layout = html.Div(
 @app.callback(
     Output("line-chart", "figure"),
     [
-        Input("country-filter", "value"),
+        Input("term-filter", "value"),
         Input("date-range", "start_date"),
         Input("date-range", "end_date"),
     ],
 )
-def update_line_chart(countries, start_date, end_date):
-    if len(countries) == 1:
-        countries = list(countries)
-    mask = ((color_var.isin(countries))
+def update_line_chart(var, start_date, end_date):
+    if len(var) == 1:
+        var = list(var)
+    mask = ((color_var.isin(var))
             & (data.date >= start_date)
             & (data.date <= end_date)
     )
     fig = px.line(data[mask],
                 x="date",
-                y="people_vaccinated_per_hundred",
-                color='country'
+                y="mentions",
+                color='term'
                 )
     return fig
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+# %%

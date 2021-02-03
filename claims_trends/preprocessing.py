@@ -1,6 +1,8 @@
 # %% Import Packages
 
+import re
 import pandas as pd
+import json
 import nltk
 from nltk.corpus import stopwords
 
@@ -129,42 +131,41 @@ from nltk.stem import PorterStemmer
 
 # Interface lemma tokenizer from nltk with sklearn
 class LemmaTokenizer:
-    ignore_tokens = [',', '.', ';', ':', '"', '``', "''", '`']
+    ignore_tokens = [',', '.', ';', ':', '"', '``', "''", '`', '%', '&', '(', ')', '-']
     def __init__(self):
         self.wnl = WordNetLemmatizer()
     def __call__(self, doc):
-        return [self.wnl.lemmatize(t) for t in word_tokenize(doc) if t not in self.ignore_tokens]
+        return [self.wnl.lemmatize(t) for t in word_tokenize(doc) if t not in self.ignore_tokens and not bool(re.match(r'\d+', t)) and not bool(re.match(r'usd+', t))]
 
 class PorterTokenizer:
-    ignore_tokens = [',', '.', ';', ':', '"', '``', "''", '`']
+    ignore_tokens = [',', '.', ';', ':', '"', '``', "''", '`', '%', '&', '(', ')', '-']
     def __init__(self):
         self.prt = PorterStemmer()
     def __call__(self, doc):
-        return [self.prt.stem(t) for t in word_tokenize(doc) if t not in self.ignore_tokens]
+        return [self.prt.stem(t) for t in word_tokenize(doc) if t not in self.ignore_tokens and not bool(re.match(r'\d+', t)) and not bool(re.match(r'usd+', t))]
 
 
-
-def scikit_vectorizer(stop_words, LemmaTokenizer):
+def scikit_vectorizer(stop_words, LemmaTokenizer, CountVectorizer):
     """[summary]
 
     Args:
         stop_words ([type]): [description]
-        LemmaTokenizer ([type]): [description]
+        PorterTokenizer ([type]): [description]
+        CountVectorizer ([type]): [description]
 
     Returns:
         [type]: [description]
     """
 
-    tokenizer = PorterTokenizer()
+    tokenizer = LemmaTokenizer()
     token_stop = tokenizer(' '.join(stop_words))
 
-    vectorizer = CountVectorizer(stop_words=token_stop,
-                                 tokenizer=tokenizer)
+    vectorizer = CountVectorizer(stop_words=token_stop, tokenizer=tokenizer)
 
     return vectorizer
 
 
-vectorizer = scikit_vectorizer(stop_words_en, LemmaTokenizer)
+vectorizer = scikit_vectorizer(stop_words_en, LemmaTokenizer, CountVectorizer)
 
 # //// corpus = ['first doc', 'the second text']
 # Corpus here is the entire set of documents in a list, on string per doc
@@ -270,6 +271,8 @@ df_docterm = pd.DataFrame(X.toarray(),
 
 # %% Data manipulation to get to the CountVectorizer result plus additional fields
 
+# Definitely need to look at the fix for merging, shouldn't be duplicating here
+
 def document_term_matrix(data:pd.DataFrame, vectorizer:CountVectorizer):
     """[summary]
 
@@ -287,8 +290,32 @@ def document_term_matrix(data:pd.DataFrame, vectorizer:CountVectorizer):
 
     data = data.merge(df_docterm, how="inner", left_on='claim_id', right_index=True)
 
+    data.drop_duplicates(subset=['claim_id', 'documents'], inplace=True)
+
     return data
 
 
 # %% Check what dates are in the data, format if needed
 
+
+
+# %% Get stopwords
+
+def get_stopwords(filename='insurance_stopwords.json'):
+    """[summary]
+
+    Args:
+        filename (str, optional): [description]. Defaults to 'insurance_stopwords.json'.
+
+    Returns:
+        [type]: [description]
+    """
+
+    stemmer = PorterStemmer()
+    stop_words_en = set([stemmer.stem(word) for word in stopwords.words('english')])
+    with open(filename, 'r') as json_file:
+        stops_ins = json.loads(json_file.read())
+    stop_words_ins = set(stemmer.stem(word) for word in stops_ins['insurance_stopwords'])
+    stop_words_combined = stop_words_en.union(stop_words_ins)
+
+    return stop_words_combined
