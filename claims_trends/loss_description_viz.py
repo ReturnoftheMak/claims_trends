@@ -1,5 +1,6 @@
 # %% Package Imports
 
+import json
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -15,8 +16,12 @@ from term_frequency import get_top_mentions_all_time
 
 # %% Data Loads
 
-df = pd.read_csv(r'C:\Users\makhan.gill\Documents\GitHub\claims_trends\claims_trends\claim_ids.csv')
-df.columns = ['claim_id', 'date', 'documents']
+df_scm = pd.read_csv(r'C:\Users\makhan.gill\SQL_DATA\LMM_SCM.csv', usecols=['ClaimDetailID', 'LossDescription', 'LossLocation'])
+df_cgen = pd.read_csv(r'C:\Users\makhan.gill\SQL_DATA\claim_data_general.csv', usecols=['ClaimDetailID', 'ClaimAdvisedDate'])
+df = df_scm.merge(df_cgen, how="left", on='ClaimDetailID')
+
+df.columns = ['claim_id', 'documents', 'loss_location', 'date']
+df = df[['date', 'loss_location', 'claim_id', 'documents']]
 df["date"] = pd.to_datetime(df["date"], infer_datetime_format=True)
 
 stop_words_combined = get_stopwords()
@@ -24,7 +29,7 @@ vectorizer = scikit_vectorizer(stop_words_combined, LemmaTokenizer, CountVectori
 
 doc_tm = document_term_matrix(df.head(5000), vectorizer)
 
-data = get_top_mentions_all_time(doc_tm, 20, 'date')
+data, data_b = get_top_mentions_all_time(doc_tm, 30, 'date', additional_groups=['loss_location'])
 
 # Need to standardise the input here to make this code a bit more extensible
 # In this case the columns from the get_mentions should be used as color/filter
@@ -39,7 +44,7 @@ external_stylesheets = [
 ]
 
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-app.title = "Covid Vaccinations"
+app.title = "Claims Keywords"
 
 app.layout = html.Div(
     children=[
@@ -49,7 +54,7 @@ app.layout = html.Div(
                     children="Claims Keywords", className="header-title"
                 ),
                 html.P(
-                    children="SCM Data",
+                    children="SCM Data - Energy Claims",
                     className="header-description",
                 ),
             ],
@@ -63,7 +68,7 @@ app.layout = html.Div(
                         dcc.Dropdown(
                             id="term-filter",
                             options=[{"label": country, "value": country} for country in np.sort(color_var.unique())],
-                            value=['fire', 'water'],
+                            value=['pipeline', 'explosion'],
                             multi=True,
                             className="dropdown",
                             persistence_type="local",
@@ -90,6 +95,7 @@ app.layout = html.Div(
             className="menu",
         ),
     dcc.Graph(id="line-chart"),
+    dcc.Graph(id="bar-chart"),
     ]
 )
 
@@ -101,18 +107,48 @@ app.layout = html.Div(
         Input("date-range", "end_date"),
     ],
 )
-def update_line_chart(var, start_date, end_date):
-    if len(var) == 1:
-        var = list(var)
-    mask = ((color_var.isin(var))
+def update_line_chart(terms, start_date, end_date):
+    if len(terms) == 1:
+        terms = list(terms)
+    mask = ((color_var.isin(terms))
             & (data.date >= start_date)
             & (data.date <= end_date)
     )
     fig = px.line(data[mask],
                 x="date",
                 y="mentions",
-                color='term'
+                color='term',
+                labels={'date':'Date Claim Advised',
+                        'mentions':'Number of Occurences'
+                        }
                 )
+    return fig
+
+@app.callback(
+    Output("bar-chart", "figure"),
+    [
+    Input("line-chart", 'hoverData'),
+    Input("term-filter", "value"),
+    ]
+)
+def pie_chart(hoverData, terms):
+    if len(terms) == 1:
+        terms = list(terms)
+    date_hover = hoverData['points'][0]['x']
+    mask = (
+        (data_b.term.isin(terms))
+        & (data_b.date == date_hover)
+        & (data_b.mentions >= 1)
+    )
+    fig = px.bar(data_b[mask],
+                y='loss_location',
+                x='mentions',
+                color='term',
+                labels={'loss_location':'Location of Loss',
+                        'mentions':'Number of Occurences'
+                        }
+                )
+
     return fig
 
 if __name__ == '__main__':

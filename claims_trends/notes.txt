@@ -1,3 +1,4 @@
 I think we want to also create an interactive graph, so where clicking graph 1
 is an action which I can use as an input to another chart.
 
+Use passing the date and line variable as mask to other chart to show locations

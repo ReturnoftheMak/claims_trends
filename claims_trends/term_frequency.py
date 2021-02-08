@@ -9,16 +9,17 @@ import numpy as np
 
 # %% Pick out the top N columns for overall frequency
 
-def get_top_mentions_all_time(document_term_matrix:pd.DataFrame, N:int, date_col_name:str):
+def get_top_mentions_all_time(document_term_matrix:pd.DataFrame, N:int, date_col_name:str, additional_groups:list=[]):
     """[summary]
 
     Args:
-        document_term_matrix (pd.DataFrame): [description]
-        N (int): [description]
-        date_col_name (str): [description]
+        document_term_matrix (pd.DataFrame): vectorised dataframe
+        N (int): Number of terms to return
+        date_col_name (str): name of the date column to use
+        additional_groups (list, optional): Additional columns to use for group by aggregation. Defaults to [].
 
     Returns:
-        [type]: [description]
+        tuple: 2 x pd.DataFrame, one for time series, the other for cross filtering.
     """
 
     document_term_matrix_top_mentions = document_term_matrix
@@ -34,15 +35,18 @@ def get_top_mentions_all_time(document_term_matrix:pd.DataFrame, N:int, date_col
     reduced = document_term_matrix_top_mentions[info_cols+top_mention_cols]
 
     flattened = pd.melt(reduced, id_vars=info_cols, var_name='term', value_name='mentions')
-
     flattened['month'] = flattened['date'].dt.to_period('M')
 
+    group = ['month', 'term'] + additional_groups
+
     grouped = flattened.groupby(['month', 'term'], as_index=False).sum()
+    grouped_add = flattened.groupby(group, as_index=False).sum()
 
     # turn the period back to date format
     grouped['date'] = grouped.month.dt.to_timestamp('d')
+    grouped_add['date'] = grouped_add.month.dt.to_timestamp('d')
 
-    return grouped
+    return grouped, grouped_add
 
 
 # %% Pick out the top N columns for highest frequency over last 30 days
@@ -50,22 +54,23 @@ def get_top_mentions_all_time(document_term_matrix:pd.DataFrame, N:int, date_col
 # //// I should actually be setting the datetime as index outside of this function if using inplace=True
 # Depends entirely on the date used, pass as arg
 
-def get_top_mentions_last_T_days(document_term_matrix:pd.DataFrame, N:int, T:int, date_col_name:str):
+def get_top_mentions_last_T_days(document_term_matrix:pd.DataFrame, N:int, T:int, date_col_name:str, additional_groups:list=[]):
     """[summary]
 
     Args:
-        document_term_matrix (pd.DataFrame): dataframe with vocab frequency as cols
+        document_term_matrix (pd.DataFrame): [description]
         N (int): [description]
         T (int): [description]
         date_col_name (str): [description]
+        additional_groups (list, optional): Additional columns to use for group by aggregation. Defaults to [].
 
     Returns:
-        [type]: [description]
+        tuple: 2 x pd.DataFrame, one for time series, the other for cross filtering.
     """
 
     # Set Date as index and filter
-    document_term_matrix.set_index(date_col_name, inplace=True)
-    latest = document_term_matrix[document_term_matrix.last_valid_index()-pd.DateOffset(T, 'D'):]
+    document_term_matrix_top_mentions = document_term_matrix.set_index(date_col_name)
+    latest = document_term_matrix_top_mentions[document_term_matrix_top_mentions.last_valid_index()-pd.DateOffset(T, 'D'):]
 
     # We make an assumption that the date is read in as datetime
 
@@ -73,11 +78,23 @@ def get_top_mentions_last_T_days(document_term_matrix:pd.DataFrame, N:int, T:int
 
     top_mentions_latest = vocab_cols.sum(axis=0).sort_values(ascending=False)[:N]
     top_mention_cols = list(top_mentions_latest.index)
-    info_cols = list(document_term_matrix.iloc[:,:document_term_matrix.columns.get_loc('documents')+1].columns)
+    info_cols = list(document_term_matrix_top_mentions.iloc[:,:document_term_matrix_top_mentions.columns.get_loc('documents')+1].columns)
 
-    document_term_matrix_top_mentions = document_term_matrix[info_cols+top_mention_cols]
+    reduced = document_term_matrix_top_mentions[info_cols+top_mention_cols]
 
-    return document_term_matrix_top_mentions
+    flattened = pd.melt(reduced, id_vars=info_cols, var_name='term', value_name='mentions')
+    flattened['month'] = flattened['date'].dt.to_period('M')
+
+    group = ['month', 'term'] + additional_groups
+
+    grouped = flattened.groupby(['month', 'term'], as_index=False).sum()
+    grouped_add = flattened.groupby(group, as_index=False).sum()
+
+    # turn the period back to date format
+    grouped['date'] = grouped.month.dt.to_timestamp('d')
+    grouped_add['date'] = grouped_add.month.dt.to_timestamp('d')
+
+    return grouped, grouped_add
 
 
 # %% Pick out the top N columns for increase in frequency?
@@ -86,17 +103,18 @@ def get_top_mentions_last_T_days(document_term_matrix:pd.DataFrame, N:int, T:int
 # Lets try looking at the average mentions before and after the last 3 months and take a ratio
 # of which we'l ltake the top N. We should probably impose a min absolute value and obviously avoid div0
 
-def get_increased_mentions(document_term_matrix:pd.DataFrame, N:int, T:int, date_col_name:str):
+def get_increased_mentions(document_term_matrix:pd.DataFrame, N:int, T:int, date_col_name:str, additional_groups:list=[]):
     """[summary]
 
     Args:
-        document_term_matrix (pd.DataFrame): dataframe with vocab frequency as cols
+        document_term_matrix (pd.DataFrame): [description]
         N (int): [description]
         T (int): [description]
         date_col_name (str): [description]
+        additional_groups (list, optional): Additional columns to use for group by aggregation. Defaults to [].
 
     Returns:
-        [type]: [description]
+        tuple: 2 x pd.DataFrame, one for time series, the other for cross filtering.
     """
 
     # Set datetime index
@@ -122,27 +140,56 @@ def get_increased_mentions(document_term_matrix:pd.DataFrame, N:int, T:int, date
 
     increased_mentions = list(comparison['relative_increase'].sort_values(ascending=False)[:N].index)
 
-    return document_term_matrix[info_cols+increased_mentions]
+    reduced = document_term_matrix[info_cols+increased_mentions]
+
+    flattened = pd.melt(reduced, id_vars=info_cols, var_name='term', value_name='mentions')
+    flattened['month'] = flattened['date'].dt.to_period('M')
+
+    group = ['month', 'term'] + additional_groups
+
+    grouped = flattened.groupby(['month', 'term'], as_index=False).sum()
+    grouped_add = flattened.groupby(group, as_index=False).sum()
+
+    # turn the period back to date format
+    grouped['date'] = grouped.month.dt.to_timestamp('d')
+    grouped_add['date'] = grouped_add.month.dt.to_timestamp('d')
+
+    return grouped, grouped_add
 
 
 # %% We'll likely want to look at a list of reasonably frequent occurrences, especially if seasonal
 # so we'll need to maintain a list of terms somewhere to keep as standard
 
-def get_standard_terms(document_term_matrix:pd.DataFrame, date_col_name:str, standard_cols:list):
+def get_standard_terms(document_term_matrix:pd.DataFrame, date_col_name:str, standard_cols:list, additional_groups:list=[]):
     """[summary]
 
     Args:
-        document_term_matrix (pd.DataFrame): dataframe with vocab frequency as cols
+        document_term_matrix (pd.DataFrame): [description]
         date_col_name (str): [description]
         standard_cols (list): [description]
+        additional_groups (list, optional): Additional columns to use for group by aggregation. Defaults to [].
 
     Returns:
-        [type]: [description]
+        tuple: 2 x pd.DataFrame, one for time series, the other for cross filtering.
     """
 
     # Set datetime index
     document_term_matrix.set_index(date_col_name, inplace=True)
     info_cols = list(document_term_matrix.iloc[:,:document_term_matrix.columns.get_loc('documents')+1].columns)
 
-    return document_term_matrix[info_cols+standard_cols]
+    reduced = document_term_matrix[info_cols+standard_cols]
+
+    flattened = pd.melt(reduced, id_vars=info_cols, var_name='term', value_name='mentions')
+    flattened['month'] = flattened['date'].dt.to_period('M')
+
+    group = ['month', 'term'] + additional_groups
+
+    grouped = flattened.groupby(['month', 'term'], as_index=False).sum()
+    grouped_add = flattened.groupby(group, as_index=False).sum()
+
+    # turn the period back to date format
+    grouped['date'] = grouped.month.dt.to_timestamp('d')
+    grouped_add['date'] = grouped_add.month.dt.to_timestamp('d')
+
+    return grouped, grouped_add
 

@@ -131,14 +131,14 @@ from nltk.stem import PorterStemmer
 
 # Interface lemma tokenizer from nltk with sklearn
 class LemmaTokenizer:
-    ignore_tokens = [',', '.', ';', ':', '"', '``', "''", '`', '%', '&', '(', ')', '-']
+    ignore_tokens = [',', '.', ';', ':', '"', '``', "''", '`', '%', '&', '(', ')', '-', '/', '+', '\\']
     def __init__(self):
         self.wnl = WordNetLemmatizer()
     def __call__(self, doc):
         return [self.wnl.lemmatize(t) for t in word_tokenize(doc) if t not in self.ignore_tokens and not bool(re.match(r'\d+', t)) and not bool(re.match(r'usd+', t))]
 
 class PorterTokenizer:
-    ignore_tokens = [',', '.', ';', ':', '"', '``', "''", '`', '%', '&', '(', ')', '-']
+    ignore_tokens = [',', '.', ';', ':', '"', '``', "''", '`', '%', '&', '(', ')', '-', '/', '+', '\\']
     def __init__(self):
         self.prt = PorterStemmer()
     def __call__(self, doc):
@@ -286,7 +286,14 @@ def document_term_matrix(data:pd.DataFrame, vectorizer:CountVectorizer):
 
     X = vectorizer.fit_transform(data['documents'])
 
+    info_cols = list(data.iloc[:, :data.columns.get_loc('documents')+1].columns)
+
     df_docterm = pd.DataFrame(X.toarray(), index=data['claim_id'], columns=vectorizer.get_feature_names())
+
+    drops = [col for col in info_cols if col in df_docterm.columns]
+
+    if len(drops) > 0:
+        df_docterm.drop(drops, axis=1, inplace=True)
 
     data = data.merge(df_docterm, how="inner", left_on='claim_id', right_index=True)
 
