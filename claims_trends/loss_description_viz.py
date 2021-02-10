@@ -16,12 +16,12 @@ from term_frequency import get_top_mentions_all_time
 
 # %% Data Loads
 
-df_scm = pd.read_csv(r'C:\Users\makhan.gill\SQL_DATA\LMM_SCM.csv', usecols=['ClaimDetailID', 'LossDescription', 'LossLocation'])
-df_cgen = pd.read_csv(r'C:\Users\makhan.gill\SQL_DATA\claim_data_general.csv', usecols=['ClaimDetailID', 'ClaimAdvisedDate'])
+df_scm = pd.read_csv(r'C:\Users\makhan.gill\SQL_DATA\LMM_SCM_all.csv', usecols=['ClaimDetailID', 'LossDescription', 'LossLocation'])
+df_cgen = pd.read_csv(r'C:\Users\makhan.gill\SQL_DATA\claim_data_general_all.csv', usecols=['ClaimDetailID', 'ClaimAdvisedDate', 'HandlingClass'])
 df = df_scm.merge(df_cgen, how="left", on='ClaimDetailID')
 
-df.columns = ['claim_id', 'documents', 'loss_location', 'date']
-df = df[['date', 'loss_location', 'claim_id', 'documents']]
+df.columns = ['claim_id', 'documents', 'loss_location', 'class', 'date']
+df = df[['date', 'loss_location', 'claim_id', 'class', 'documents']]
 df["date"] = pd.to_datetime(df["date"], infer_datetime_format=True)
 
 stop_words_combined = get_stopwords()
@@ -34,6 +34,7 @@ data, data_b = get_top_mentions_all_time(doc_tm, 30, 'date', additional_groups=[
 # Need to standardise the input here to make this code a bit more extensible
 # In this case the columns from the get_mentions should be used as color/filter
 color_var = data.term
+class_var = data['class']
 
 external_stylesheets = [
     {
@@ -68,8 +69,21 @@ app.layout = html.Div(
                         dcc.Dropdown(
                             id="term-filter",
                             options=[{"label": country, "value": country} for country in np.sort(color_var.unique())],
-                            value=['pipeline', 'explosion'],
+                            value=['fire', 'water', 'hurricane'],
                             multi=True,
+                            className="dropdown",
+                            persistence_type="local",
+                        ),
+                    ],
+                ),
+                html.Div(
+                    children=[
+                        html.Div(children="Class", className="menu-title"),
+                        dcc.Dropdown(
+                            id="class-filter",
+                            options=[{"label": class_, "value": class_} for class_ in np.sort(class_var.unique())],
+                            value=['Aviation'],
+                            multi=False,
                             className="dropdown",
                             persistence_type="local",
                         ),
@@ -105,14 +119,16 @@ app.layout = html.Div(
         Input("term-filter", "value"),
         Input("date-range", "start_date"),
         Input("date-range", "end_date"),
+        Input("class-filter", "value"),
     ],
 )
-def update_line_chart(terms, start_date, end_date):
+def update_line_chart(terms, start_date, end_date, class_):
     if len(terms) == 1:
         terms = list(terms)
     mask = ((color_var.isin(terms))
             & (data.date >= start_date)
             & (data.date <= end_date)
+            & (data['class'] == class_)
     )
     fig = px.line(data[mask],
                 x="date",

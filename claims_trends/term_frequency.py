@@ -13,7 +13,7 @@ def get_top_mentions_all_time(document_term_matrix:pd.DataFrame, N:int, date_col
     """[summary]
 
     Args:
-        document_term_matrix (pd.DataFrame): vectorised dataframe
+        document_term_matrix (pd.DataFrame): vectorised dataframe after preprocessing
         N (int): Number of terms to return
         date_col_name (str): name of the date column to use
         additional_groups (list, optional): Additional columns to use for group by aggregation. Defaults to [].
@@ -37,9 +37,9 @@ def get_top_mentions_all_time(document_term_matrix:pd.DataFrame, N:int, date_col
     flattened = pd.melt(reduced, id_vars=info_cols, var_name='term', value_name='mentions')
     flattened['month'] = flattened['date'].dt.to_period('M')
 
-    group = ['month', 'term'] + additional_groups
+    group = ['month', 'term', 'class'] + additional_groups
 
-    grouped = flattened.groupby(['month', 'term'], as_index=False).sum()
+    grouped = flattened.groupby(['month', 'class', 'term'], as_index=False).sum()
     grouped_add = flattened.groupby(group, as_index=False).sum()
 
     # turn the period back to date format
@@ -58,10 +58,10 @@ def get_top_mentions_last_T_days(document_term_matrix:pd.DataFrame, N:int, T:int
     """[summary]
 
     Args:
-        document_term_matrix (pd.DataFrame): [description]
-        N (int): [description]
-        T (int): [description]
-        date_col_name (str): [description]
+        document_term_matrix (pd.DataFrame): vectorised dataframe after preprocessing
+        N (int): Number of terms to return
+        T (int): Number of days to calculate over
+        date_col_name (str): name of the date column to use
         additional_groups (list, optional): Additional columns to use for group by aggregation. Defaults to [].
 
     Returns:
@@ -107,10 +107,10 @@ def get_increased_mentions(document_term_matrix:pd.DataFrame, N:int, T:int, date
     """[summary]
 
     Args:
-        document_term_matrix (pd.DataFrame): [description]
-        N (int): [description]
-        T (int): [description]
-        date_col_name (str): [description]
+        document_term_matrix (pd.DataFrame): vectorised dataframe after preprocessing
+        N (int): Number of terms to return
+        T (int): Number of days to calculate over
+        date_col_name (str): name of the date column to use
         additional_groups (list, optional): Additional columns to use for group by aggregation. Defaults to [].
 
     Returns:
@@ -118,12 +118,12 @@ def get_increased_mentions(document_term_matrix:pd.DataFrame, N:int, T:int, date
     """
 
     # Set datetime index
-    document_term_matrix.set_index(date_col_name, inplace=True)
-    latest = document_term_matrix[document_term_matrix.last_valid_index()-pd.DateOffset(T, 'M'):]
-    historical = document_term_matrix[:document_term_matrix.last_valid_index()-pd.DateOffset(T, 'M')]
+    document_term_matrix_im = document_term_matrix.set_index(date_col_name)
+    latest = document_term_matrix_im[document_term_matrix_im.last_valid_index()-pd.DateOffset(T, 'M'):]
+    historical = document_term_matrix_im[:document_term_matrix_im.last_valid_index()-pd.DateOffset(T, 'M')]
 
-    info_cols = list(document_term_matrix.iloc[:,:document_term_matrix.columns.get_loc('documents')+1].columns)
-    vocab_cols = list(document_term_matrix.iloc[:,document_term_matrix.columns.get_loc('documents')+1:].columns)
+    info_cols = list(document_term_matrix_im.iloc[:,:document_term_matrix_im.columns.get_loc('documents')+1].columns)
+    vocab_cols = list(document_term_matrix_im.iloc[:,document_term_matrix_im.columns.get_loc('documents')+1:].columns)
 
     # Average monthly mentions in the historical?
     hist_monthly = historical[vocab_cols].resample('M').sum().mean()
@@ -140,7 +140,7 @@ def get_increased_mentions(document_term_matrix:pd.DataFrame, N:int, T:int, date
 
     increased_mentions = list(comparison['relative_increase'].sort_values(ascending=False)[:N].index)
 
-    reduced = document_term_matrix[info_cols+increased_mentions]
+    reduced = document_term_matrix_im[info_cols+increased_mentions]
 
     flattened = pd.melt(reduced, id_vars=info_cols, var_name='term', value_name='mentions')
     flattened['month'] = flattened['date'].dt.to_period('M')
@@ -164,9 +164,9 @@ def get_standard_terms(document_term_matrix:pd.DataFrame, date_col_name:str, sta
     """[summary]
 
     Args:
-        document_term_matrix (pd.DataFrame): [description]
-        date_col_name (str): [description]
-        standard_cols (list): [description]
+        document_term_matrix (pd.DataFrame): vectorised dataframe after preprocessing
+        date_col_name (str): name of the date column to use
+        standard_cols (list): input list for terms to use
         additional_groups (list, optional): Additional columns to use for group by aggregation. Defaults to [].
 
     Returns:
@@ -174,10 +174,12 @@ def get_standard_terms(document_term_matrix:pd.DataFrame, date_col_name:str, sta
     """
 
     # Set datetime index
-    document_term_matrix.set_index(date_col_name, inplace=True)
-    info_cols = list(document_term_matrix.iloc[:,:document_term_matrix.columns.get_loc('documents')+1].columns)
+    document_term_matrix_sm = document_term_matrix
+    info_cols = list(document_term_matrix_sm.iloc[:,:document_term_matrix_sm.columns.get_loc('documents')+1].columns)
 
-    reduced = document_term_matrix[info_cols+standard_cols]
+    cols_to_use = [col for col in standard_cols is col in document_term_matrix_sm.columns]
+
+    reduced = document_term_matrix_sm[info_cols+cols_to_use]
 
     flattened = pd.melt(reduced, id_vars=info_cols, var_name='term', value_name='mentions')
     flattened['month'] = flattened['date'].dt.to_period('M')
