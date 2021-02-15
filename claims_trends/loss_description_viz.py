@@ -140,6 +140,7 @@ def update_line_chart(terms, start_date, end_date, class_):
                 )
     return fig
 
+
 @app.callback(
     Output("bar-chart", "figure"),
     [
@@ -169,4 +170,5 @@ def pie_chart(hoverData, terms):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+
 # %%
