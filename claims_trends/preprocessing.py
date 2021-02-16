@@ -203,11 +203,11 @@ def get_document_list(data:pd.DataFrame, document_list:list, key_fields:list):
 
     Args:
         data (pd.DataFrame): [description]
-        document_list (list): [description]
+        document_list (list): fields of text to combine and return a string
         key_fields (list): Key fields here are a list of things like date and claims ID
 
     Returns:
-        [type]: [description]
+        pd.DataFrame: dataframe with combined text fields
     """
 
     data['document'] = data[document_list].apply(lambda x: ' '.join(x.dropna().astype(str)).lower(), axis=1)
