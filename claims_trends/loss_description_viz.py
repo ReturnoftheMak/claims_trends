@@ -156,7 +156,7 @@ def update_term_dropdown(name):
     ],
     [dash.dependencies.Input('class-filter', 'value')]
 )
-def update_term_dropdown(name):
+def update_date_dropdown(name):
     return df_dict[name][0].date.min().date(), df_dict[name][0].date.max().date(), df_dict[name][0].date.min().date(), df_dict[name][0].date.max().date()
 
 
@@ -212,7 +212,6 @@ def bar_chart(hoverData, terms, class_):
                         'mentions':'Number of Occurences'
                         }
                 )
-
     return fig
 
 if __name__ == '__main__':
