@@ -16,8 +16,10 @@ from term_frequency import get_top_mentions_all_time
 
 # %% Data Loads
 
-df_scm = pd.read_csv(r'C:\Users\makhan.gill\SQL_DATA\LMM_SCM_all.csv', usecols=['ClaimDetailID', 'LossDescription', 'LossLocation'])
-df_cgen = pd.read_csv(r'C:\Users\makhan.gill\SQL_DATA\claim_data_general_all.csv', usecols=['ClaimDetailID', 'ClaimAdvisedDate', 'HandlingClass'])
+df_scm = pd.read_csv(r'C:\Users\makhan.gill\SQL_DATA\LMM_SCM_all.csv',
+                     usecols=['ClaimDetailID', 'LossDescription', 'LossLocation'])
+df_cgen = pd.read_csv(r'C:\Users\makhan.gill\SQL_DATA\claim_data_general_all.csv',
+                      usecols=['ClaimDetailID', 'ClaimAdvisedDate', 'HandlingClass'])
 df = df_scm.merge(df_cgen, how="left", on='ClaimDetailID')
 
 df.columns = ['claim_id', 'documents', 'loss_location', 'class', 'date']
@@ -29,12 +31,40 @@ vectorizer = scikit_vectorizer(stop_words_combined, LemmaTokenizer, CountVectori
 
 doc_tm = document_term_matrix(df.head(5000), vectorizer)
 
-data, data_b = get_top_mentions_all_time(doc_tm, 30, 'date', additional_groups=['loss_location'])
 
-# Need to standardise the input here to make this code a bit more extensible
+def get_mentions_per_class(vectorised_df:pd.DataFrame, N:int, date_col_name:str, additional_groups:list=[]):
+    """[summary]
+
+    Args:
+        vectorised_df (pd.DataFrame): [description]
+        N (int): [description]
+        date_col_name (str): [description]
+        additional_groups (list, optional): [description]. Defaults to [].
+
+    Returns:
+        [type]: [description]
+    """
+
+    class_mentions = {}
+
+    cobs = vectorised_df['class'].unique()
+
+    for cob in cobs:
+        class_mentions[cob] = get_top_mentions_all_time(vectorised_df[vectorised_df['class'] == cob], N, date_col_name, additional_groups)
+
+    return class_mentions
+
+df_dict =  get_mentions_per_class(doc_tm, 30, 'date', additional_groups=['loss_location'])
+
+
+# %%
+
+# /// data, data_b = get_top_mentions_all_time(doc_tm, 30, 'date', additional_groups=['loss_location'])
+
+# Might need to standardise the input here to make this code a bit more extensible
 # In this case the columns from the get_mentions should be used as color/filter
-color_var = data.term
-class_var = data['class']
+# /// color_var = data.term
+# /// class_var = data['class']
 
 external_stylesheets = [
     {
@@ -68,8 +98,7 @@ app.layout = html.Div(
                         html.Div(children="Terms", className="menu-title"),
                         dcc.Dropdown(
                             id="term-filter",
-                            options=[{"label": country, "value": country} for country in np.sort(color_var.unique())],
-                            value=['fire', 'water', 'hurricane'],
+                            value=['fire'],
                             multi=True,
                             className="dropdown",
                             persistence_type="local",
@@ -81,8 +110,8 @@ app.layout = html.Div(
                         html.Div(children="Class", className="menu-title"),
                         dcc.Dropdown(
                             id="class-filter",
-                            options=[{"label": class_, "value": class_} for class_ in np.sort(class_var.unique())],
-                            value=['Aviation'],
+                            options=[{"label": class_, "value": class_} for class_ in list(df_dict.keys())],
+                            value=list(df_dict.keys())[0],
                             multi=False,
                             className="dropdown",
                             persistence_type="local",
@@ -97,10 +126,6 @@ app.layout = html.Div(
                             ),
                         dcc.DatePickerRange(
                             id="date-range",
-                            min_date_allowed=data.date.min().date(),
-                            max_date_allowed=data.date.max().date(),
-                            start_date=data.date.min().date(),
-                            end_date=data.date.max().date(),
                             persistence_type="local",
                         ),
                     ]
@@ -112,6 +137,28 @@ app.layout = html.Div(
     dcc.Graph(id="bar-chart"),
     ]
 )
+
+
+@app.callback(
+    dash.dependencies.Output('term-filter', 'options'),
+    [dash.dependencies.Input('class-filter', 'value')]
+)
+def update_term_dropdown(name):
+    return [{'label': i, 'value': i} for i in df_dict[name][0].term.unique()]
+
+
+@app.callback(
+    [
+        dash.dependencies.Output('date-range', 'min_date_allowed'),
+        dash.dependencies.Output('date-range', 'max_date_allowed'),
+        dash.dependencies.Output('date-range', 'start_date'),
+        dash.dependencies.Output('date-range', 'end_date'),
+    ],
+    [dash.dependencies.Input('class-filter', 'value')]
+)
+def update_term_dropdown(name):
+    return df_dict[name][0].date.min().date(), df_dict[name][0].date.max().date(), df_dict[name][0].date.min().date(), df_dict[name][0].date.max().date()
+
 
 @app.callback(
     Output("line-chart", "figure"),
@@ -125,12 +172,11 @@ app.layout = html.Div(
 def update_line_chart(terms, start_date, end_date, class_):
     if len(terms) == 1:
         terms = list(terms)
-    mask = ((color_var.isin(terms))
-            & (data.date >= start_date)
-            & (data.date <= end_date)
-            & (data['class'] == class_)
+    mask = ((df_dict[class_][0].term.isin(terms))
+            & (df_dict[class_][0].date >= start_date)
+            & (df_dict[class_][0].date <= end_date)
     )
-    fig = px.line(data[mask],
+    fig = px.line(df_dict[class_][0][mask],
                 x="date",
                 y="mentions",
                 color='term',
@@ -146,18 +192,19 @@ def update_line_chart(terms, start_date, end_date, class_):
     [
     Input("line-chart", 'hoverData'),
     Input("term-filter", "value"),
+    Input("class-filter", "value"),
     ]
 )
-def pie_chart(hoverData, terms):
+def bar_chart(hoverData, terms, class_):
     if len(terms) == 1:
         terms = list(terms)
     date_hover = hoverData['points'][0]['x']
     mask = (
-        (data_b.term.isin(terms))
-        & (data_b.date == date_hover)
-        & (data_b.mentions >= 1)
+        (df_dict[class_][1].term.isin(terms))
+        & (df_dict[class_][1].date == date_hover)
+        & (df_dict[class_][1].mentions >= 1)
     )
-    fig = px.bar(data_b[mask],
+    fig = px.bar(df_dict[class_][1][mask],
                 y='loss_location',
                 x='mentions',
                 color='term',

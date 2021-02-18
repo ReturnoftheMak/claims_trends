@@ -2,3 +2,15 @@ I think we want to also create an interactive graph, so where clicking graph 1
 is an action which I can use as an input to another chart.
 
 Use passing the date and line variable as mask to other chart to show locations
+
+
+Adding Res Class is slightly different, as we want the highest terms per class so we ideally get a different class
+dataframe for each, can store this in a dict, and populate the charts based on the df which gets chosen
+by passing the key from the class filter.
+
+a dictionary for each set of dataframes?
+
+
+
+Changing the loss location data, tricky due to poor data quality
+
