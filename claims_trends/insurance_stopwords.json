@@ -1,2 +1,3 @@
 {"insurance_stopwords": ["block", "loss", "tax", "usd", "various",
-                        "cause", "entry", "iro", "sl", "due"]}
+                        "cause", "entry", "iro", "sl", "due",
+                        "claim", "claimant", "clmnt", "clmt"]}
