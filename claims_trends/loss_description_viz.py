@@ -52,9 +52,14 @@ def get_mentions_per_class(vectorised_df:pd.DataFrame, N:int, date_col_name:str,
     for cob in cobs:
         class_mentions[cob] = get_top_mentions_all_time(vectorised_df[vectorised_df['class'] == cob], N, date_col_name, additional_groups)
 
-    return class_mentions
+    df_combined_0 = pd.concat([class_mentions[key][0] for key in class_mentions.keys()])
+    df_combined_1 = pd.concat([class_mentions[key][1] for key in class_mentions.keys()])
 
-df_dict =  get_mentions_per_class(doc_tm, 30, 'date', additional_groups=['loss_location'])
+    df_dict_combined = {'base': df_combined_0, 'add_cols':df_combined_1}
+
+    return class_mentions, df_dict_combined
+
+df_dict, df_dict_combined =  get_mentions_per_class(doc_tm, 30, 'date', additional_groups=['loss_location'])
 
 
 # %%

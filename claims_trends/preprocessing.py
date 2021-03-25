@@ -48,14 +48,14 @@ def sql_connection(ServerName, DBName):
 # %% Pull in the SCM data
 
 def get_scm_data(sql_con, table_name='T_LMM_SCM'):
-    """[summary]
+    """Reads SCM data from table
 
     Args:
-        sql_con ([type]): [description]
-        table_name (str, optional): [description]. Defaults to 'T_LMM_SCM'.
+        sql_con (sqlalchemy.engine.base.Engine): Engine connecting to server and db
+        table_name (str, optional): Table name. Defaults to 'T_LMM_SCM'.
 
     Returns:
-        [type]: [description]
+        pd.DataFrame: base table from SQL
     """
 
     df = pd.read_sql_table(sql_con, table_name)
@@ -67,15 +67,15 @@ def get_scm_data(sql_con, table_name='T_LMM_SCM'):
     return df
 
 
-def get_usm_data(sql_con, table_name = 'T_LMM_SCM'):
-    """[summary]
+def get_usm_data(sql_con, table_name = 'T_LMM_USM'):
+    """Reads USM data from table
 
     Args:
-        sql_con ([type]): [description]
-        table_name (str, optional): [description]. Defaults to 'T_LMM_SCM'.
+        sql_con (sqlalchemy.engine.base.Engine): Engine connecting to server and db
+        table_name (str, optional): Table name. Defaults to 'T_LMM_SCM'.
 
     Returns:
-        [type]: [description]
+        pd.DataFrame: base table from SQL
     """
 
     df = pd.read_sql_table(sql_con, table_name)
@@ -96,8 +96,16 @@ from nltk.stem import WordNetLemmatizer
 # //// nltk.download('punkt')
 stop_words_en = set(stopwords.words('english'))
 
-def remove_stopwords(text:str, stop_words):
-    """
+def remove_stopwords(text:str, stop_words:set):
+    """Given a set of stopwords, removes them from the string provided,
+    and returns tokenized words.
+
+    Args:
+        text (str): text to process
+        stop_words ([type]): [description]
+
+    Returns:
+        list: filtered words
     """
 
     filtered_words = [word for word in word_tokenize(text) if word not in stop_words]
@@ -106,7 +114,13 @@ def remove_stopwords(text:str, stop_words):
 
 
 def get_word_stems(word_list:list):
-    """
+    """[summary]
+
+    Args:
+        word_list (list): [description]
+
+    Returns:
+        [type]: [description]
     """
 
     lemmatizer = WordNetLemmatizer()
@@ -160,7 +174,7 @@ def scikit_vectorizer(stop_words, LemmaTokenizer, CountVectorizer):
     tokenizer = LemmaTokenizer()
     token_stop = tokenizer(' '.join(stop_words))
 
-    vectorizer = CountVectorizer(stop_words=token_stop, tokenizer=tokenizer)
+    vectorizer = CountVectorizer(stop_words=token_stop, tokenizer=tokenizer, max_features=500)
 
     return vectorizer
 

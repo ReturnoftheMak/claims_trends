@@ -10,3 +10,12 @@ and then use the verified data.
 Not sure how I can determine proximate cause with logic over a classifier, but
 I don't have a labelled dataset yet.
 
+## Perils
+
+Planning to have a look at specific terms, and use these to look at perils.
+Peril split by incurred, have an 'other' category.
+
+## Dask rewrite
+
+
+
