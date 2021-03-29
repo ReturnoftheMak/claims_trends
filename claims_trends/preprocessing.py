@@ -174,7 +174,7 @@ def scikit_vectorizer(stop_words, LemmaTokenizer, CountVectorizer):
     tokenizer = LemmaTokenizer()
     token_stop = tokenizer(' '.join(stop_words))
 
-    vectorizer = CountVectorizer(stop_words=token_stop, tokenizer=tokenizer, max_features=500)
+    vectorizer = CountVectorizer(stop_words=token_stop, tokenizer=tokenizer, max_features=200)
 
     return vectorizer
 
@@ -304,6 +304,7 @@ def document_term_matrix(data:pd.DataFrame, vectorizer:CountVectorizer):
 
     df_docterm = pd.DataFrame(X.toarray(), index=data['claim_id'], columns=vectorizer.get_feature_names())
 
+    # avoid columns which are names of existing cols like 'claim_id'
     drops = [col for col in info_cols if col in df_docterm.columns]
 
     if len(drops) > 0:
