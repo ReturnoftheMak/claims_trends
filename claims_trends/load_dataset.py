@@ -16,7 +16,7 @@ def load_data():
     """
 
     df_scm = pd.read_csv(r'C:\Users\makhan.gill\SQL_DATA\LMM_SCM_all.csv',
-                        usecols=['ClaimDetailID', 'LossDescription', 'ExtendedLossDetails', 'LossLocation', 'OutstandingLoss', 'TotalLossPaid'])
+                        usecols=['ClaimDetailID', 'LossDescription', 'ExtendedLossDetails', 'LossLocation', 'OutstandingLoss', 'TotalLossPaid', 'ReceivedDate'])
     df_cgen = pd.read_csv(r'C:\Users\makhan.gill\SQL_DATA\claim_data_general_all.csv',
                         usecols=['ClaimDetailID', 'ClaimAdvisedDate', 'HandlingClass'])
     df = df_scm.merge(df_cgen, how="left", on='ClaimDetailID')
@@ -25,12 +25,18 @@ def load_data():
     df['documents'] = df[document_list].apply(lambda x: ' '.join(x.dropna().astype(str)).lower(), axis=1)
     df['incurred_loss'] = df['OutstandingLoss'] + df['TotalLossPaid']
 
-    df = df[['ClaimAdvisedDate', 'LossLocation', 'ClaimDetailID', 'HandlingClass', 'documents', 'incurred_loss']]
-    df.columns = ['date', 'loss_location', 'claim_id', 'class', 'documents', 'incurred_loss']
+    df = df[['ClaimAdvisedDate', 'LossLocation', 'ClaimDetailID', 'HandlingClass', 'documents', 'incurred_loss', 'ReceivedDate']]
+    df.columns = ['date', 'loss_location', 'claim_id', 'class', 'documents', 'incurred_loss', 'ReceivedDate']
     df["date"] = pd.to_datetime(df["date"], infer_datetime_format=True)
+    df["ReceivedDate"] = pd.to_datetime(df["ReceivedDate"], infer_datetime_format=True)
 
     # Turn this into a groupby
-    df = df.groupby(['date', 'loss_location', 'claim_id', 'class', 'documents'], as_index=False).sum()
+    # Now realised movements not incremental, get latest movement date for group
+
+    # We also have an explanation for each movement, need to aggregate these at later date
+    # // df = df.groupby(['date', 'loss_location', 'claim_id', 'class', 'documents'], as_index=False).tail(1)
+
+    df = df.loc[df.groupby(['date', 'loss_location', 'claim_id', 'class', 'documents']).ReceivedDate.idxmax(),:]
 
     return df
 
