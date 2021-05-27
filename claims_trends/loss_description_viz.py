@@ -90,7 +90,7 @@ app.layout = html.Div(
                     children="Claims Keywords", className="header-title"
                 ),
                 html.P(
-                    children="SCM Data - Energy Claims",
+                    children="SCM Data - Property Claims",
                     className="header-description",
                 ),
             ],
@@ -103,7 +103,7 @@ app.layout = html.Div(
                         html.Div(children="Terms", className="menu-title"),
                         dcc.Dropdown(
                             id="term-filter",
-                            value=['fire'],
+                            value=['earthquake', 'wind', 'fire'],
                             multi=True,
                             className="dropdown",
                             persistence_type="local",

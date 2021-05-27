@@ -5,6 +5,7 @@
 
 import pandas as pd
 import numpy as np
+from nltk.stem import PorterStemmer
 
 
 # %% Pick out the top N columns for overall frequency
@@ -177,7 +178,12 @@ def get_standard_terms(document_term_matrix:pd.DataFrame, date_col_name:str, sta
     document_term_matrix_sm = document_term_matrix
     info_cols = list(document_term_matrix_sm.iloc[:,:document_term_matrix_sm.columns.get_loc('documents')+1].columns)
 
-    cols_to_use = [col for col in standard_cols is col in document_term_matrix_sm.columns]
+    # We may want to standardise the entered list first?
+    # Use WordNetLemmatizer
+    stemmer = PorterStemmer()
+    stemmed_cols = set([stemmer.stem(word) for word in standard_cols])
+
+    cols_to_use = [col for col in stemmed_cols if col in document_term_matrix_sm.columns]
 
     reduced = document_term_matrix_sm[info_cols+cols_to_use]
 

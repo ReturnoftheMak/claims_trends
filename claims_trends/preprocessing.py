@@ -84,6 +84,7 @@ def get_usm_data(sql_con, table_name = 'T_LMM_USM'):
 
     return df
 
+
 # %% Remove the stopwords from a string
 
 # Run both these functions for getting list of lemmatised words from one string
@@ -179,7 +180,7 @@ def scikit_vectorizer(stop_words, LemmaTokenizer, CountVectorizer):
     return vectorizer
 
 
-vectorizer = scikit_vectorizer(stop_words_en, LemmaTokenizer, CountVectorizer)
+vectorizer = scikit_vectorizer(stop_words_en, PorterTokenizer, CountVectorizer)
 
 # //// corpus = ['first doc', 'the second text']
 # Corpus here is the entire set of documents in a list, on string per doc
@@ -330,7 +331,7 @@ def get_stopwords(filename='insurance_stopwords.json'):
         filename (str, optional): [description]. Defaults to 'insurance_stopwords.json'.
 
     Returns:
-        [type]: [description]
+        set: [description]
     """
 
     stemmer = PorterStemmer()
