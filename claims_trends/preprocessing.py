@@ -160,7 +160,7 @@ class PorterTokenizer:
         return [self.prt.stem(t) for t in word_tokenize(doc) if t not in self.ignore_tokens and not bool(re.match(r'\d+', t)) and not bool(re.match(r'usd+', t))]
 
 
-def scikit_vectorizer(stop_words, LemmaTokenizer, CountVectorizer):
+def scikit_vectorizer(stop_words, PorterTokenizer, CountVectorizer):
     """[summary]
 
     Args:
@@ -172,10 +172,10 @@ def scikit_vectorizer(stop_words, LemmaTokenizer, CountVectorizer):
         [type]: [description]
     """
 
-    tokenizer = LemmaTokenizer()
+    tokenizer = PorterTokenizer()
     token_stop = tokenizer(' '.join(stop_words))
 
-    vectorizer = CountVectorizer(stop_words=token_stop, tokenizer=tokenizer, max_features=200)
+    vectorizer = CountVectorizer(stop_words=token_stop, tokenizer=tokenizer, max_features=None)
 
     return vectorizer
 
