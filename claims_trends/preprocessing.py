@@ -157,7 +157,7 @@ class PorterTokenizer:
     def __init__(self):
         self.prt = PorterStemmer()
     def __call__(self, doc):
-        return [self.prt.stem(t) for t in word_tokenize(doc) if t not in self.ignore_tokens and not bool(re.match(r'\d+', t)) and not bool(re.match(r'usd+', t))]
+        return [self.prt.stem(t) for t in word_tokenize(doc.replace('-',' ').replace('/',' ')) if t not in self.ignore_tokens and not bool(re.match(r'\d+', t)) and not bool(re.match(r'usd+', t))]
 
 
 def scikit_vectorizer(stop_words, PorterTokenizer, CountVectorizer):

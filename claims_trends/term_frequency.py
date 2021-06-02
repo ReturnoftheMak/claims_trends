@@ -192,7 +192,7 @@ def get_standard_terms(document_term_matrix:pd.DataFrame, date_col_name:str, sta
 
     group = ['month', 'term'] + additional_groups
 
-    grouped = flattened.groupby(['month', 'term'], as_index=False).sum()
+    grouped = flattened.groupby(['month', 'term', 'claim_id'], as_index=False).sum()
     grouped_add = flattened.groupby(group, as_index=False).sum()
 
     # turn the period back to date format
