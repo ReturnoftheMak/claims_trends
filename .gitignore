@@ -3,3 +3,4 @@ claims_trends/claim_ids.csv
 claims_trends/loss_descriptions.csv
 data/pbi_data.csv
 data/relevant_claims.csv
+data/flagged_claims.csv
