@@ -93,4 +93,5 @@ relevant_claims.to_csv(r'../data/relevant_claims.csv')
 df_claims = df_export[df_export['relevant_claim'] == 'Relevant']
 df_claims.to_csv(r'../data/flagged_claims.csv')
 
+
 # %%
