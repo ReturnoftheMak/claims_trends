@@ -21,15 +21,14 @@ def sql_connection(ServerName, DBName):
     """
 
     from sqlalchemy import create_engine
+    from sqlalchemy.engine import URL
+    import pyodbc
+    pyodbc.pooling = False
 
-    sqlcon = create_engine('mssql+pyodbc://@' +
-                           ServerName +
-                           '/' +
-                           DBName +
-                           '?driver=ODBC+Driver+13+for+SQL+Server',
+    engine = create_engine('mssql+pyodbc://basapodevsqlv02/Apollo_Reporting?trusted_connection=yes&driver=ODBC+Driver+17+for+SQL+Server',
                            fast_executemany=True)
 
-    return sqlcon
+    return engine
 
 
 # %% Getting data from the SCM and USM
@@ -58,7 +57,7 @@ def get_scm_data(sql_con, table_name='T_LMM_SCM'):
         pd.DataFrame: base table from SQL
     """
 
-    df = pd.read_sql_table(sql_con, table_name)
+    df = pd.read_sql_table(table_name, sql_con)
 
     # Should return the whole table, can filter down once we know what we want
 
@@ -78,7 +77,7 @@ def get_usm_data(sql_con, table_name = 'T_LMM_USM'):
         pd.DataFrame: base table from SQL
     """
 
-    df = pd.read_sql_table(sql_con, table_name)
+    df = pd.read_sql_table(table_name, sql_con)
 
     # Filter for all of the Lloyd's narrative fields
 
