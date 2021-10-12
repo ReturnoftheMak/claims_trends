@@ -4,3 +4,4 @@ claims_trends/loss_descriptions.csv
 data/pbi_data.csv
 data/relevant_claims.csv
 data/flagged_claims.csv
+dash/concussion_mentions_v2.pbix

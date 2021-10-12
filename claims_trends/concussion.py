@@ -60,6 +60,32 @@ for df_chunk in list_df:
 
 concussion_terms = pd.concat(grouped_list)
 
+# %%
+
+def get_relevant_claims(df, vectorizer):
+    """[summary]
+
+    Args:
+        df ([type]): [description]
+    """
+    df_liab = df[df['class'].isin(['Non Marine Liability', 'Marine Energy Liability', 'iBott General Liability',
+                                   'Specialty Disruptiton', 'Accident & Health'])]
+
+    grouped_list = []
+    n = 10000
+    list_df = [df_liab[i:i+n] for i in range(0,len(df_liab),n)]
+
+    for df_chunk in list_df:
+        doc_tm = document_term_matrix(df_chunk, vectorizer)
+        g1, g2 = get_standard_terms(doc_tm, 'date', key_words)
+        grouped_list.append(g1)
+
+    concussion_terms = pd.concat(grouped_list)
+    relevant_claims = concussion_terms[concussion_terms.mentions > 0]
+    df_relevant_claims = df[df.claim_id.isin(relevant_claims.claim_id.unique())]
+
+    return relevant_claims, df_relevant_claims
+
 
 # %% List of relevant claims to filter
 
@@ -86,6 +112,35 @@ df_export = df_export[df_export['HandlingClass'].isin(['Non Marine Liability',
                                                        'iBott General Liability',
                                                        'Specialty Disruptiton',
                                                        'Accident & Health'])]
+
+# %% Full data import
+
+def get_full_claims_data(engine):
+    """[summary]
+
+    Args:
+        engine ([type]): [description]
+
+    Returns:
+        [type]: [description]
+    """
+    df_scm_f = pd.read_sql_query("SELECT * from V_LMMData_SCM", engine)
+    df_cgen_f = pd.read_sql_query("SELECT * from V_ClaimData_General", engine)
+    df_scm_f = df_scm_f.sort_values(['ClaimDetailID', 'ReceivedDate'], axis=0).groupby('ClaimDetailID').tail(1)
+    df_scm_f['relevant_claim'] = np.where(df_scm_f['ClaimDetailID'].isin(relevant_claims.claim_id.unique()), "Relevant", "Irrelevant")
+
+    df_export = df_scm_f.merge(df_cgen_f, how="left", on='ClaimDetailID')
+
+    df_export = df_export[df_export['HandlingClass'].isin(['Non Marine Liability',
+                                                           'Marine Energy Liability',
+                                                           'iBott General Liability',
+                                                           'Specialty Disruptiton',
+                                                           'Accident & Health'])]
+
+    return df_export
+
+
+# %% Export
 
 df_export.to_csv(r'../data/pbi_data.csv')
 relevant_claims.to_csv(r'../data/relevant_claims.csv')

@@ -25,7 +25,7 @@ def sql_connection(ServerName, DBName):
     import pyodbc
     pyodbc.pooling = False
 
-    engine = create_engine('mssql+pyodbc://basapodevsqlv02/Apollo_Reporting?trusted_connection=yes&driver=ODBC+Driver+17+for+SQL+Server',
+    engine = create_engine('mssql+pyodbc://' + ServerName + '/' + DBName + '?trusted_connection=yes&driver=ODBC+Driver+17+for+SQL+Server',
                            fast_executemany=True)
 
     return engine
