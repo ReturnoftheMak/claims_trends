@@ -38,7 +38,7 @@ vectorizer = scikit_vectorizer(stop_words_combined, PorterTokenizer, CountVector
 df_liab = df[df['class'].isin(['Non Marine Liability',
                                'Marine Energy Liability',
                                'iBott General Liability',
-                               'Specialty Disruptiton',
+                               'Specialty Disruption',
                                'Accident & Health'])]
 
 # Chunk it?
@@ -69,7 +69,7 @@ def get_relevant_claims(df, vectorizer):
         df ([type]): [description]
     """
     df_liab = df[df['class'].isin(['Non Marine Liability', 'Marine Energy Liability', 'iBott General Liability',
-                                   'Specialty Disruptiton', 'Accident & Health'])]
+                                   'Specialty Disruption', 'Accident & Health'])]
 
     grouped_list = []
     n = 10000
@@ -110,34 +110,36 @@ df_export = df_scm_f.merge(df_cgen_f, how="left", on='ClaimDetailID')
 df_export = df_export[df_export['HandlingClass'].isin(['Non Marine Liability',
                                                        'Marine Energy Liability',
                                                        'iBott General Liability',
-                                                       'Specialty Disruptiton',
+                                                       'Specialty Disruption',
                                                        'Accident & Health'])]
+
 
 # %% Full data import
 
-def get_full_claims_data(engine):
+def get_full_claims_data(df_scm, df_cgen, relevant_claims):
     """[summary]
 
     Args:
         engine ([type]): [description]
+        relevant_claims ([type]): [description]
 
     Returns:
         [type]: [description]
     """
-    df_scm_f = pd.read_sql_query("SELECT * from V_LMMData_SCM", engine)
-    df_cgen_f = pd.read_sql_query("SELECT * from V_ClaimData_General", engine)
-    df_scm_f = df_scm_f.sort_values(['ClaimDetailID', 'ReceivedDate'], axis=0).groupby('ClaimDetailID').tail(1)
-    df_scm_f['relevant_claim'] = np.where(df_scm_f['ClaimDetailID'].isin(relevant_claims.claim_id.unique()), "Relevant", "Irrelevant")
+    ### ! df_scm = pd.read_sql_query("SELECT * from V_LMMData_SCM", engine)
+    ### ! df_cgen = pd.read_sql_query("SELECT * from V_ClaimData_General", engine)
+    df_scm = df_scm.sort_values(['ClaimDetailID', 'ReceivedDate'], axis=0).groupby('ClaimDetailID').tail(1)
+    df_scm['relevant_claim'] = np.where(df_scm['ClaimDetailID'].isin(relevant_claims.claim_id.unique()), "Relevant", "Irrelevant")
 
-    df_export = df_scm_f.merge(df_cgen_f, how="left", on='ClaimDetailID')
+    df_claims = df_scm.merge(df_cgen, how="left", on='ClaimDetailID')
 
-    df_export = df_export[df_export['HandlingClass'].isin(['Non Marine Liability',
+    df_claims = df_claims[df_claims['HandlingClass'].isin(['Non Marine Liability',
                                                            'Marine Energy Liability',
                                                            'iBott General Liability',
-                                                           'Specialty Disruptiton',
+                                                           'Specialty Disruption',
                                                            'Accident & Health'])]
 
-    return df_export
+    return df_claims
 
 
 # %% Export
