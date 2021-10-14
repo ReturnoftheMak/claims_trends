@@ -1,2 +1,0 @@
-@echo off
-C:\Users\makhan.gill\Anaconda3\Scripts\jupyter.exe nbconvert C:\Users\makhan.gill\Documents\GitHub\claims_trends\claims_trends\concussion_notebook.nbconvert.ipynb --to html --output C:\Users\makhan.gill\Documents\GitHub\claims_trends\output\output.html
