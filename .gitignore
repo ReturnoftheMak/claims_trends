@@ -5,3 +5,8 @@ data/pbi_data.csv
 data/relevant_claims.csv
 data/flagged_claims.csv
 dash/concussion_mentions_v2.pbix
+claims_trends/concussion_notebook.nbconvert.ipynb
+output/output.html
+output/output.html
+output/output.html
+claims_trends/concussion_notebook.nbconvert.ipynb
