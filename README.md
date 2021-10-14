@@ -19,3 +19,7 @@ Peril split by incurred, have an 'other' category.
 
 Not yet necessary
 
+## Scheduling
+
+schtasks /query is the command to see what tasks are scheduled, can't seem to see this from windows scheduler.
+https://docs.microsoft.com/en-us/windows-server/administration/windows-commands/schtasks-delete
